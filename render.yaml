@@ -1,0 +1,21 @@
+# Push to main → Render auto-deploy (окремий Blueprint, не tantra-club).
+services:
+  - type: web
+    name: relax-massage-landing
+    runtime: static
+    branch: main
+    autoDeploy: true
+    buildCommand: echo "static site — no build"
+    staticPublishPath: .
+    domains:
+      - tantraclub.cz
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=()
