@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Relax masáž</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -303,7 +306,11 @@
 
   <script>
     (function () {
-      var WHATSAPP = "420797669633";
+      var WHATSAPP_NUMBERS = [
+        "420797669633",
+        "420777060456",
+        "420778622334"
+      ];
       var DEFAULT_LANG = "cs";
       var SUPPORTED = ["cs", "en", "ru"];
 
@@ -337,6 +344,24 @@
         }
       };
 
+      function getPragueWhatsAppState() {
+        var parts = {};
+        new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Europe/Prague",
+          year: "numeric",
+          month: "numeric",
+          day: "numeric",
+          hour: "numeric",
+          hour12: false
+        }).formatToParts(new Date()).forEach(function (p) {
+          if (p.type !== "literal") parts[p.type] = +p.value;
+        });
+        var slotInDay = Math.floor(parts.hour / 2);
+        var dayIndex = Math.floor(Date.UTC(parts.year, parts.month - 1, parts.day) / 86400000);
+        var slot = dayIndex * 12 + slotInDay;
+        return { slot: slot, number: WHATSAPP_NUMBERS[slot % 3] };
+      }
+
       function detectLang() {
         // 1) збережений вибір користувача
         var saved = null;
@@ -353,16 +378,20 @@
       }
 
       var cta = document.getElementById("cta");
+      var currentLang = DEFAULT_LANG;
 
       function apply(lang) {
+        currentLang = lang;
         var t = I18N[lang] || I18N[DEFAULT_LANG];
+        var wa = getPragueWhatsAppState();
         document.documentElement.lang = lang;
         document.title = t.docTitle;
         document.querySelectorAll("[data-i18n]").forEach(function (el) {
           var key = el.getAttribute("data-i18n");
           if (t[key] != null) el.textContent = t[key];
         });
-        cta.href = "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent(t.waText);
+        cta.setAttribute("data-wa-slot", String(wa.slot));
+        cta.href = "https://wa.me/" + wa.number + "?text=" + encodeURIComponent(t.waText);
         document.querySelectorAll(".lang button").forEach(function (b) {
           b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang));
         });
@@ -374,6 +403,11 @@
       });
 
       apply(detectLang());
+
+      setInterval(function () {
+        var wa = getPragueWhatsAppState();
+        if (String(wa.slot) !== cta.getAttribute("data-wa-slot")) apply(currentLang);
+      }, 60000);
     })();
   </script>
 </body>
