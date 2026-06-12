@@ -9,6 +9,16 @@ services:
     staticPublishPath: .
     domains:
       - relaxmassageprague.cz
+    routes:
+      - type: rewrite
+        source: /cs
+        destination: /
+      - type: rewrite
+        source: /en
+        destination: /
+      - type: rewrite
+        source: /ru
+        destination: /
     headers:
       - path: /*
         name: X-Content-Type-Options

@@ -4,9 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Relax masáž</title>
-<link rel="icon" href="favicon.svg" type="image/svg+xml" />
-<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32" />
-<link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -362,25 +362,45 @@
         return { slot: slot, number: WHATSAPP_NUMBERS[slot % 3] };
       }
 
+      function langFromPath() {
+        var match = location.pathname.match(/^\/(cs|en|ru)\/?$/);
+        return match ? match[1] : null;
+      }
+
+      function langPath(lang) {
+        return "/" + lang;
+      }
+
+      function syncUrl(lang, replace) {
+        var target = langPath(lang);
+        var current = location.pathname.replace(/\/$/, "") || "/";
+        if (current === target) return;
+        var fn = replace ? "replaceState" : "pushState";
+        history[fn]({ lang: lang }, "", target);
+      }
+
       function detectLang() {
-        // 1) збережений вибір користувача
+        // 1) мова з URL (/cs, /en, /ru)
+        var fromPath = langFromPath();
+        if (fromPath) return fromPath;
+        // 2) збережений вибір користувача
         var saved = null;
         try { saved = localStorage.getItem("lang"); } catch (e) {}
         if (saved && SUPPORTED.indexOf(saved) !== -1) return saved;
-        // 2) мова браузера
+        // 3) мова браузера
         var langs = navigator.languages || [navigator.language || ""];
         for (var i = 0; i < langs.length; i++) {
           var code = (langs[i] || "").toLowerCase().slice(0, 2);
           if (SUPPORTED.indexOf(code) !== -1) return code;
         }
-        // 3) дефолт — чеська
+        // 4) дефолт — чеська
         return DEFAULT_LANG;
       }
 
       var cta = document.getElementById("cta");
       var currentLang = DEFAULT_LANG;
 
-      function apply(lang) {
+      function apply(lang, updateUrl) {
         currentLang = lang;
         var t = I18N[lang] || I18N[DEFAULT_LANG];
         var wa = getPragueWhatsAppState();
@@ -396,13 +416,21 @@
           b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang));
         });
         try { localStorage.setItem("lang", lang); } catch (e) {}
+        if (updateUrl !== false) syncUrl(lang, false);
       }
 
       document.querySelectorAll(".lang button").forEach(function (b) {
         b.addEventListener("click", function () { apply(b.getAttribute("data-lang")); });
       });
 
-      apply(detectLang());
+      window.addEventListener("popstate", function () {
+        var fromPath = langFromPath();
+        if (fromPath) apply(fromPath, false);
+      });
+
+      var initialLang = detectLang();
+      apply(initialLang, false);
+      if (!langFromPath()) syncUrl(initialLang, true);
 
       setInterval(function () {
         var wa = getPragueWhatsAppState();
