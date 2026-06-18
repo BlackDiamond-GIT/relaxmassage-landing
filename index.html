@@ -355,6 +355,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         }
       };
 
+      /* Beacon на існуючий Django (tantra-club) — не змінює Render static site */
+      var CLICK_TRACK_URL = "https://www.tantra-prague.com/api/relax-landing/click/";
+
       function getPragueWhatsAppState() {
         var parts = {};
         new Intl.DateTimeFormat("en-GB", {
@@ -370,7 +373,26 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         var slotInDay = Math.floor(parts.hour / 2);
         var dayIndex = Math.floor(Date.UTC(parts.year, parts.month - 1, parts.day) / 86400000);
         var slot = dayIndex * 12 + slotInDay;
-        return { slot: slot, number: WHATSAPP_NUMBERS[slot % 3] };
+        var phoneIndex = (slot % 3) + 1;
+        return {
+          slot: slot,
+          phoneIndex: phoneIndex,
+          number: WHATSAPP_NUMBERS[slot % 3]
+        };
+      }
+
+      function trackWhatsAppClick(lang, phoneIndex, phoneNumber) {
+        if (!CLICK_TRACK_URL) return;
+        var url = CLICK_TRACK_URL
+          + "?lang=" + encodeURIComponent(lang)
+          + "&phone=" + encodeURIComponent(String(phoneIndex))
+          + "&n=" + encodeURIComponent(phoneNumber)
+          + "&_=" + Date.now();
+        if (typeof fetch === "function") {
+          fetch(url, { method: "GET", mode: "no-cors", keepalive: true }).catch(function () {});
+          return;
+        }
+        new Image().src = url;
       }
 
       function langFromPath() {
@@ -429,6 +451,11 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         try { localStorage.setItem("lang", lang); } catch (e) {}
         if (updateUrl !== false) syncUrl(lang, false);
       }
+
+      cta.addEventListener("click", function () {
+        var wa = getPragueWhatsAppState();
+        trackWhatsAppClick(currentLang, wa.phoneIndex, wa.number);
+      });
 
       document.querySelectorAll(".lang button").forEach(function (b) {
         b.addEventListener("click", function () { apply(b.getAttribute("data-lang")); });
